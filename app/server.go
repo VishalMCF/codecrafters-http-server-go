@@ -4,10 +4,26 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	// Uncomment this block to pass the first stage
 	// "net"
 	// "os"
 )
+
+const (
+	GET    = "GET"
+	POST   = "POST"
+	PUT    = "PUT"
+	DELETE = "DELETE"
+)
+
+type RequestParams struct {
+	method  string
+	path    string
+	version string
+	sender  string
+	headers map[string]string
+}
 
 func main() {
 
@@ -25,13 +41,66 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		go handleConnection(conn)
+		handleConnection(conn)
 	}
 }
 
 func handleConnection(conn net.Conn) {
-	_, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	request := make([]byte, 1024)
+	_, err := conn.Read(request)
 	if err != nil {
 		return
 	}
+	reqParams := getReqParams(request)
+	switch reqParams.method {
+	case GET:
+		_ = handleGetRequest(reqParams, conn)
+		return
+	default:
+		return
+	}
+}
+
+func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
+	switch reqParams.path {
+	case "/":
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		return nil
+	default:
+		conn.Write([]byte("HTTP/1.1 404 NOT FOUND\r\n\r\n"))
+		return nil
+	}
+
+}
+
+func getReqParams(request []byte) RequestParams {
+	requestString := string(request)
+	fields := strings.Split(strings.Split(requestString, "\r\n\r\n")[0], "\r\n")
+	// extract request type and path and http version
+	reqDetails := strings.Split(fields[0], " ")
+	hostDetails := strings.Split(fields[1], " ")
+	reqHeaders := getHeaders(fields)
+	return RequestParams{
+		method:  reqDetails[0],
+		path:    reqDetails[1],
+		version: reqDetails[2],
+		sender:  strings.TrimSpace(hostDetails[1]),
+		headers: reqHeaders,
+	}
+}
+
+func getHeaders(reqDetails []string) map[string]string {
+	headers := make(map[string]string)
+	for index, elem := range reqDetails {
+		if index == 0 || index == 1 {
+			continue
+		} else if elem == "" || elem == " " {
+			break
+		}
+		temp := strings.Split(elem, ":")
+		headerName := strings.TrimSpace(temp[0])
+		headerValue := strings.TrimSpace(temp[1])
+		headers[headerName] = headerValue
+	}
+	return headers
 }

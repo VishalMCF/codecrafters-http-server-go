@@ -67,7 +67,7 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		return nil
 	default:
-		conn.Write([]byte("HTTP/1.1 404 NOT FOUND\r\n\r\n"))
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		return nil
 	}
 

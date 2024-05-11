@@ -67,10 +67,17 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 		return nil
 	default:
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		return nil
+		reqPathAndValue := strings.Split(reqParams.path, "/")
+		switch reqPathAndValue[1] {
+		case "echo":
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+				len(reqPathAndValue[2]), reqPathAndValue[2])))
+			return nil
+		default:
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			return nil
+		}
 	}
-
 }
 
 func getReqParams(request []byte) RequestParams {

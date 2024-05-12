@@ -95,11 +95,13 @@ func handlePostRequest(reqParams RequestParams, conn net.Conn) error {
 			fmt.Println("File was successfully created -> ", file.Name())
 			fileWriter := bufio.NewWriter(file)
 			contentLength, err := fileWriter.Write(reqParams.reqBody)
-			fmt.Println("reqBody recieved -> ", string(reqParams.reqBody))
+			content := string(reqParams.reqBody)
+			fmt.Println("reqBody recieved -> ", content)
 			if err != nil {
 				return err
 			}
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 Created\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n", contentLength)))
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 Created\r\nContent-Type: "+
+				"application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", contentLength, content)))
 			return nil
 		default:
 			return nil

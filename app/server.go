@@ -94,7 +94,7 @@ func handlePostRequest(reqParams RequestParams, conn net.Conn) error {
 			defer file.Close()
 			fmt.Println("File was successfully created -> ", file.Name())
 			fileWriter := bufio.NewWriter(file)
-			contentLength, err := fileWriter.Write(reqParams.reqBody)
+			contentLength, err := fileWriter.WriteString(string(reqParams.reqBody))
 			fmt.Println("Length of the content written ", contentLength)
 			content := string(reqParams.reqBody)
 			fmt.Println("reqBody recieved -> ", content)

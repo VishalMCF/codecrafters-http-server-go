@@ -83,17 +83,14 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			directoryName := flag.String("directory", "", "the directory to serve files from")
 			flag.Parse()
 			fmt.Println("Arguments passed -> ", *directoryName)
-
 			// Check for a valid directory argument
 			if *directoryName == "" {
 				fmt.Println("Directory not specified")
 				return fmt.Errorf("directory not specified")
 			}
-
 			// Get the filename from the path
 			fileName := reqPathAndValue[2]
 			filePath := filepath.Join(*directoryName, fileName)
-
 			// Open the file
 			file, err := os.Open(filePath)
 			if err != nil {
@@ -101,7 +98,6 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 				return err
 			}
 			defer file.Close()
-
 			// Read the contents of the file
 			fileContent := bufio.NewReader(file)
 			fileData := make([]byte, 65507)
@@ -110,7 +106,6 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 				fmt.Println("Error happened while loading the contents of the file into the bytes")
 				return err
 			}
-
 			// Write the HTTP header followed by the content
 			header := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n", contentLength)
 			conn.Write([]byte(header))

@@ -78,76 +78,100 @@ func handlePostRequest(reqParams RequestParams, conn net.Conn) error {
 		reqPathAndValue := strings.Split(reqParams.path, "/")
 		switch reqPathAndValue[1] {
 		case "files":
-			fmt.Println("Arguments passed -> ", *directoryName)
-			if *directoryName == "" {
-				fmt.Println("Directory not specified")
-				return fmt.Errorf("directory not specified")
-			}
-			// Get the filename from the path
-			fileName := reqPathAndValue[2]
-			filePath := filepath.Join(*directoryName, fileName)
-			content := reqParams.reqBody
-			os.WriteFile(filePath, content, 0644)
-			fmt.Println("reqBody recieved -> ", content)
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 Created\r\nContent-Type: "+
-				"application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), string(content))))
-			return nil
+			return handlePostFileReq(reqParams, conn, reqPathAndValue)
 		default:
 			return nil
 		}
 	}
 }
 
+func handlePostFileReq(reqParams RequestParams, conn net.Conn, reqPathAndValue []string) error {
+	fmt.Println("Arguments passed -> ", *directoryName)
+	if *directoryName == "" {
+		fmt.Println("Directory not specified")
+		return fmt.Errorf("directory not specified")
+	}
+	// Get the filename from the path
+	fileName := reqPathAndValue[2]
+	filePath := filepath.Join(*directoryName, fileName)
+	content := reqParams.reqBody
+	os.WriteFile(filePath, content, 0644)
+	fmt.Println("reqBody recieved -> ", content)
+	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 Created\r\nContent-Type: "+
+		"application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), string(content))))
+	return nil
+}
+
 func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 	switch reqParams.path {
 	case "/":
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-		return nil
+		return handleHomePageGetRequest(conn)
 	default:
 		reqPathAndValue := strings.Split(reqParams.path, "/")
 		switch reqPathAndValue[1] {
 		case "echo":
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
-				len(reqPathAndValue[2]), reqPathAndValue[2])))
-			return nil
+			return handleGetEchoRequest(conn, reqPathAndValue)
 		case "user-agent":
-			reqHeader := reqParams.headers["User-Agent"]
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
-				len(reqHeader), reqHeader)))
-			return nil
+			return handleGetUserAgentRequest(reqParams, conn)
 		case "files":
-			fmt.Println("Arguments passed -> ", *directoryName)
-			// Check for a valid directory argument
-			if *directoryName == "" {
-				fmt.Println("Directory not specified")
-				return fmt.Errorf("directory not specified")
-			}
-			// Get the filename from the path
-			fileName := reqPathAndValue[2]
-			filePath := filepath.Join(*directoryName, fileName)
-			// Open the file
-			file, err := os.Open(filePath)
-			if err != nil {
-				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 404 Not Found\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
-					0, make([]byte, 0))))
-				return nil
-			}
-			defer file.Close()
-			// Read the contents of the file
-			fileContent := bufio.NewReader(file)
-			fileData := make([]byte, 65507)
-			contentLength, err := fileContent.Read(fileData)
-			if err != nil {
-				return err
-			}
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
-				contentLength, fileData)))
-			return nil
+			return handleGetFileContentRequest(reqPathAndValue, conn)
 		default:
-			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-			return nil
+			return handleGetNotFound(conn)
 		}
 	}
+}
+
+func handleGetFileContentRequest(reqPathAndValue []string, conn net.Conn) error {
+	fmt.Println("Arguments passed -> ", *directoryName)
+	// Check for a valid directory argument
+	if *directoryName == "" {
+		fmt.Println("Directory not specified")
+		return fmt.Errorf("directory not specified")
+	}
+	// Get the filename from the path
+	fileName := reqPathAndValue[2]
+	filePath := filepath.Join(*directoryName, fileName)
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		conn.Write([]byte(fmt.Sprintf("HTTP/1.1 404 Not Found\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
+			0, make([]byte, 0))))
+		return nil
+	}
+	defer file.Close()
+	// Read the contents of the file
+	fileContent := bufio.NewReader(file)
+	fileData := make([]byte, 65507)
+	contentLength, err := fileContent.Read(fileData)
+	if err != nil {
+		return err
+	}
+	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
+		contentLength, fileData)))
+	return nil
+}
+
+func handleGetNotFound(conn net.Conn) error {
+	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	return nil
+}
+
+func handleGetUserAgentRequest(reqParams RequestParams, conn net.Conn) error {
+	reqHeader := reqParams.headers["User-Agent"]
+	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+		len(reqHeader), reqHeader)))
+	return nil
+}
+
+func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string) error {
+	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+		len(reqPathAndValue[2]), reqPathAndValue[2])))
+	return nil
+}
+
+func handleHomePageGetRequest(conn net.Conn) error {
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	return nil
 }
 
 func extractRequestBody(data string, reqLen int) []byte {

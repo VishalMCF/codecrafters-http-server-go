@@ -95,7 +95,7 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			// Open the file
 			file, err := os.Open(filePath)
 			if err != nil {
-				fmt.Println("Error happened while opening the file -> ", filePath)
+				fmt.Println("Error happened while opening the file -> ", filePath, err)
 				return err
 			}
 			defer file.Close()

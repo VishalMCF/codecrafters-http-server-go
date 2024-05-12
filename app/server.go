@@ -73,6 +73,11 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
 				len(reqPathAndValue[2]), reqPathAndValue[2])))
 			return nil
+		case "user-agent":
+			reqHeader := reqParams.headers["User-Agent"]
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+				len(reqHeader), reqHeader)))
+			return nil
 		default:
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 			return nil

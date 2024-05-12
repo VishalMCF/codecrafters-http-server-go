@@ -79,6 +79,8 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			return nil
 		case "files":
 			directoryName := os.Args[0]
+			fmt.Println("Arguments passed -> ", directoryName)
+			fmt.Println()
 			fileName := reqPathAndValue[2]
 			filePath, err := os.Open(directoryName + "/" + fileName)
 			if err != nil {

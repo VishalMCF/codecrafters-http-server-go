@@ -94,7 +94,7 @@ func handlePostRequest(reqParams RequestParams, conn net.Conn) error {
 			}
 			fileWriter := bufio.NewWriter(file)
 			fileWriter.Write(reqParams.reqBody)
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s")))
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 Created\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s")))
 			return nil
 		default:
 			return nil

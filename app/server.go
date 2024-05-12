@@ -168,8 +168,8 @@ func getReqParams(request []byte) (RequestParams, error) {
 	reqHeaders := getHeaders(fields)
 	reqLen, err := strconv.Atoi(reqHeaders["Content-Length"])
 	if err != nil {
-		fmt.Println("Could not pass the request length")
-		return RequestParams{}, err
+		fmt.Println("Request body was not passed")
+		reqLen = 0
 	}
 	reqBodyData := extractRequestBody(reqInfo[1], reqLen)
 	return RequestParams{

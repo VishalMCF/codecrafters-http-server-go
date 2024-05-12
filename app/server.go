@@ -95,8 +95,9 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			// Open the file
 			file, err := os.Open(filePath)
 			if err != nil {
-				fmt.Println("Error happened while opening the file -> ", filePath, err)
-				return err
+				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 404 Not Found\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
+					0, make([]byte, 0))))
+				return nil
 			}
 			defer file.Close()
 			// Read the contents of the file
@@ -104,13 +105,10 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			fileData := make([]byte, 65507)
 			contentLength, err := fileContent.Read(fileData)
 			if err != nil {
-				fmt.Println("Error happened while loading the contents of the file into the bytes")
 				return err
 			}
-			// Write the HTTP header followed by the content
-			header := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n", contentLength)
-			conn.Write([]byte(header))
-			conn.Write(fileData[:contentLength]) // Ensure only the read bytes are sent
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
+				contentLength, fileData)))
 			return nil
 		default:
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))

@@ -80,7 +80,7 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			return nil
 		case "files":
 			directoryName := flag.String("directory", "", "the directory to serve files from")
-			//flag.Parse()
+			flag.Parse()
 			fmt.Println("Arguments passed -> ", *directoryName)
 			fileName := reqPathAndValue[2]
 			filePath, err := os.Open(*directoryName + "/" + fileName)

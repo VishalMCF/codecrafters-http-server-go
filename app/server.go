@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -78,11 +79,10 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 				len(reqHeader), reqHeader)))
 			return nil
 		case "files":
-			directoryName := os.Args[0]
+			directoryName := flag.String("directory", "", "the directory to serve files from")
 			fmt.Println("Arguments passed -> ", directoryName)
-			fmt.Println()
 			fileName := reqPathAndValue[2]
-			filePath, err := os.Open(directoryName + "/" + fileName)
+			filePath, err := os.Open(*directoryName + "/" + fileName)
 			if err != nil {
 				fmt.Println("Error happened while opening the file from the directory -> ", fileName)
 				return err

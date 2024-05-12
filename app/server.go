@@ -28,7 +28,10 @@ type RequestParams struct {
 	headers map[string]string
 }
 
+var directoryName = flag.String("directory", "", "the directory to serve files from")
+
 func main() {
+	flag.Parse()
 	fmt.Println("Logs from your program will appear here!")
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -80,8 +83,6 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 				len(reqHeader), reqHeader)))
 			return nil
 		case "files":
-			directoryName := flag.String("directory", "", "the directory to serve files from")
-			flag.Parse()
 			fmt.Println("Arguments passed -> ", *directoryName)
 			// Check for a valid directory argument
 			if *directoryName == "" {

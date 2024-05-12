@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	// Uncomment this block to pass the first stage
 	// "net"
@@ -26,6 +27,7 @@ type RequestParams struct {
 	version string
 	sender  string
 	headers map[string]string
+	reqBody []byte
 }
 
 var directoryName = flag.String("directory", "", "the directory to serve files from")
@@ -55,13 +57,48 @@ func handleConnection(conn net.Conn) {
 	if err != nil {
 		return
 	}
-	reqParams := getReqParams(request)
+	reqParams, _ := getReqParams(request)
 	switch reqParams.method {
 	case GET:
 		_ = handleGetRequest(reqParams, conn)
 		return
+	case POST:
+		_ = handlePostRequest(reqParams, conn)
 	default:
 		return
+	}
+}
+
+func handlePostRequest(reqParams RequestParams, conn net.Conn) error {
+	switch reqParams.path {
+	case "/":
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		return nil
+	default:
+		reqPathAndValue := strings.Split(reqParams.path, "/")
+		switch reqPathAndValue[1] {
+		case "files":
+			fmt.Println("Arguments passed -> ", *directoryName)
+			if *directoryName == "" {
+				fmt.Println("Directory not specified")
+				return fmt.Errorf("directory not specified")
+			}
+			// Get the filename from the path
+			fileName := reqPathAndValue[2]
+			filePath := filepath.Join(*directoryName, fileName)
+			file, err := os.Create(filePath)
+			defer file.Close()
+			if err != nil {
+				fmt.Println("Error happened while creating the file")
+				return nil
+			}
+			fileWriter := bufio.NewWriter(file)
+			fileWriter.Write(reqParams.reqBody)
+			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 201 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s")))
+			return nil
+		default:
+			return nil
+		}
 	}
 }
 
@@ -117,20 +154,36 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 	}
 }
 
-func getReqParams(request []byte) RequestParams {
+func extractRequestBody(data string, reqLen int) []byte {
+	reqBody := make([]byte, 0)
+	for i := range reqLen {
+		reqBody = append(reqBody, data[i])
+	}
+	return reqBody
+}
+
+func getReqParams(request []byte) (RequestParams, error) {
 	requestString := string(request)
-	fields := strings.Split(strings.Split(requestString, "\r\n\r\n")[0], "\r\n")
+	reqInfo := strings.Split(requestString, "\r\n\r\n")
+	fields := strings.Split(reqInfo[0], "\r\n")
 	// extract request type and path and http version
 	reqDetails := strings.Split(fields[0], " ")
 	hostDetails := strings.Split(fields[1], " ")
 	reqHeaders := getHeaders(fields)
+	reqLen, err := strconv.Atoi(reqHeaders["Content-Length"])
+	if err != nil {
+		fmt.Println("Could not pass the request length")
+		return RequestParams{}, err
+	}
+	reqBodyData := extractRequestBody(reqInfo[1], reqLen)
 	return RequestParams{
 		method:  reqDetails[0],
 		path:    reqDetails[1],
 		version: reqDetails[2],
 		sender:  strings.TrimSpace(hostDetails[1]),
 		headers: reqHeaders,
-	}
+		reqBody: reqBodyData,
+	}, nil
 }
 
 func getHeaders(reqDetails []string) map[string]string {

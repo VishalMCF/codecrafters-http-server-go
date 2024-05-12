@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	// Uncomment this block to pass the first stage
 	// "net"
@@ -82,21 +83,38 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 			directoryName := flag.String("directory", "", "the directory to serve files from")
 			flag.Parse()
 			fmt.Println("Arguments passed -> ", *directoryName)
+
+			// Check for a valid directory argument
+			if *directoryName == "" {
+				fmt.Println("Directory not specified")
+				return fmt.Errorf("directory not specified")
+			}
+
+			// Get the filename from the path
 			fileName := reqPathAndValue[2]
-			filePath, err := os.Open(*directoryName + "/" + fileName)
+			filePath := filepath.Join(*directoryName, fileName)
+
+			// Open the file
+			file, err := os.Open(filePath)
 			if err != nil {
-				fmt.Println("Error happened while opening the file from the directory -> ", fileName)
+				fmt.Println("Error happened while opening the file -> ", filePath)
 				return err
 			}
-			fileContent := bufio.NewReader(filePath)
+			defer file.Close()
+
+			// Read the contents of the file
+			fileContent := bufio.NewReader(file)
 			fileData := make([]byte, 65507)
 			contentLength, err := fileContent.Read(fileData)
 			if err != nil {
 				fmt.Println("Error happened while loading the contents of the file into the bytes")
 				return err
 			}
-			conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s",
-				contentLength, fileData)))
+
+			// Write the HTTP header followed by the content
+			header := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n", contentLength)
+			conn.Write([]byte(header))
+			conn.Write(fileData[:contentLength]) // Ensure only the read bytes are sent
 			return nil
 		default:
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))

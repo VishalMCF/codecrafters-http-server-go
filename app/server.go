@@ -9,9 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	// Uncomment this block to pass the first stage
-	// "net"
-	// "os"
 )
 
 const (
@@ -19,6 +16,8 @@ const (
 	POST   = "POST"
 	PUT    = "PUT"
 	DELETE = "DELETE"
+	PATCH  = "PATCH"
+	GZIP   = "gzip"
 )
 
 type RequestParams struct {
@@ -110,7 +109,7 @@ func handleGetRequest(reqParams RequestParams, conn net.Conn) error {
 		reqPathAndValue := strings.Split(reqParams.path, "/")
 		switch reqPathAndValue[1] {
 		case "echo":
-			return handleGetEchoRequest(conn, reqPathAndValue)
+			return handleGetEchoRequest(conn, reqPathAndValue, reqParams.headers)
 		case "user-agent":
 			return handleGetUserAgentRequest(reqParams, conn)
 		case "files":
@@ -163,7 +162,18 @@ func handleGetUserAgentRequest(reqParams RequestParams, conn net.Conn) error {
 	return nil
 }
 
-func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string) error {
+func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string, headers map[string]string) error {
+	supportedEncodings := []string{GZIP}
+	encodingSent, exists := headers["Accept-Encoding"]
+	if exists {
+		for _, val := range supportedEncodings {
+			if strings.EqualFold(val, encodingSent) {
+				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+					val, len(reqPathAndValue[2]), reqPathAndValue[2])))
+				return nil
+			}
+		}
+	}
 	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
 		len(reqPathAndValue[2]), reqPathAndValue[2])))
 	return nil

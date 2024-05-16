@@ -164,13 +164,16 @@ func handleGetUserAgentRequest(reqParams RequestParams, conn net.Conn) error {
 
 func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string, headers map[string]string) error {
 	supportedEncodings := []string{GZIP}
-	encodingSent, exists := headers["Accept-Encoding"]
+	encodingsSent, exists := headers["Accept-Encoding"]
+	encodingsList := strings.Split(encodingsSent, ", ")
 	if exists {
-		for _, val := range supportedEncodings {
-			if strings.EqualFold(val, encodingSent) {
-				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
-					val, len(reqPathAndValue[2]), reqPathAndValue[2])))
-				return nil
+		for _, valSent := range encodingsList {
+			for _, valSupported := range supportedEncodings {
+				if strings.EqualFold(valSupported, valSent) {
+					conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+						valSupported, len(reqPathAndValue[2]), reqPathAndValue[2])))
+					return nil
+				}
 			}
 		}
 	}

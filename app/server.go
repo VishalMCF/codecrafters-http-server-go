@@ -2,8 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -170,8 +173,9 @@ func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string, headers map[s
 		for _, valSent := range encodingsList {
 			for _, valSupported := range supportedEncodings {
 				if strings.EqualFold(valSupported, valSent) {
+					compressedContent := compressContent(reqPathAndValue[2]).String()
 					conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
-						valSupported, len(reqPathAndValue[2]), reqPathAndValue[2])))
+						valSupported, len(compressedContent), compressedContent)))
 					return nil
 				}
 			}
@@ -180,6 +184,20 @@ func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string, headers map[s
 	conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
 		len(reqPathAndValue[2]), reqPathAndValue[2])))
 	return nil
+}
+
+func compressContent(original string) *bytes.Buffer {
+	// Compress the text string
+	var compressedBuffer bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBuffer)
+	_, err := gzipWriter.Write([]byte(original))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		log.Fatal(err)
+	}
+	return &compressedBuffer
 }
 
 func handleHomePageGetRequest(conn net.Conn) error {

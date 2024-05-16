@@ -168,7 +168,7 @@ func handleGetEchoRequest(conn net.Conn, reqPathAndValue []string, headers map[s
 	if exists {
 		for _, val := range supportedEncodings {
 			if strings.EqualFold(val, encodingSent) {
-				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
+				conn.Write([]byte(fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Encoding: %s\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
 					val, len(reqPathAndValue[2]), reqPathAndValue[2])))
 				return nil
 			}
